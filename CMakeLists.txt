@@ -1,29 +1,46 @@
-cmake_minimum_required(VERSION 3.13)
+name: Build Geode Mod
 
-# Force fmt into header-only mode to prevent Android NDK consteval errors
-set(FMT_HEADER_ONLY ON CACHE BOOL "" FORCE)
-set(FMT_OS OFF CACHE BOOL "" FORCE)
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
 
-# Tell CMake where to find the Geode SDK path set by GitHub Actions
-if(DEFINED ENV{GEODE_SDK})
-    list(APPEND CMAKE_PREFIX_PATH "$ENV{GEODE_SDK}")
-endif()
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Windows
+            os: windows-latest
+          - name: macOS
+            os: macos-latest
+          - name: Android (64-bit)
+            os: ubuntu-latest
+            target: android64
+          - name: Android (32-bit)
+            os: ubuntu-latest
+            target: android32
 
-project(YourModName VERSION 1.0.0 LANGUAGES CXX)
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+      - name: Build Mod
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          target: ${{ matrix.config.target }}
+          combine: true
 
-# Include CPM if present in your repository
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPM.cmake")
-    include(cmake/CPM.cmake)
-endif()
-
-# Load Geode SDK
-find_package(Geode REQUIRED)
-
-# Collect all C++ source files
-file(GLOB_RECURSE SOURCES "src/*.cpp")
-
-# Configure Geode mod target
-setup_geode_mod(${PROJECT_NAME} SOURCES ${SOURCES})
+  package:
+    name: Package Mod
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Package Geode Mod
+        uses: geode-sdk/build-geode-mod/combine@main
