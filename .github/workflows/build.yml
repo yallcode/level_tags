@@ -18,8 +18,6 @@ jobs:
         config:
           - name: Windows
             os: windows-latest
-          - name: macOS
-            os: macos-latest
           - name: Android (64-bit)
             os: ubuntu-latest
             target: android64
